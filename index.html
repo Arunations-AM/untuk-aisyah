@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Happy Birthday Aisyah! 🌸</title>
+    <meta name="description" content="Ucapan ulang tahun ke-20 untuk Aisyah — 26 Juli 2026">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Dancing+Script:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- ============ SCENE 1: OPENING ============ -->
+    <div id="scene-opening" class="scene active">
+        <div class="floating-petals" id="floating-petals"></div>
+        <div class="sparkle-bg" id="sparkle-bg"></div>
+        <div class="opening-content">
+            <div class="opening-emoji" id="opening-emoji">🌸</div>
+            <p class="opening-text" id="typing-text"></p>
+            <div class="typing-cursor" id="typing-cursor">|</div>
+            <button class="start-btn" id="start-btn">
+                <span class="btn-text">Sentuh untuk mulai</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ SCENE 2: FLOWER GROWING ============ -->
+    <div id="scene-flower" class="scene stage-0">
+        <div class="flower-sky" id="flower-sky"></div>
+        <div class="flower-overlay" id="flower-overlay"></div>
+
+        <div class="sun" id="sun"></div>
+
+        <div class="cloud-area">
+            <div class="cloud" id="cloud">
+                <div class="cloud-puff cloud-puff-1"></div>
+                <div class="cloud-puff cloud-puff-2"></div>
+                <div class="cloud-puff cloud-puff-3"></div>
+                <div class="cloud-text" id="cloud-text">Tap aku! ☁️</div>
+            </div>
+        </div>
+
+        <div class="progress-container" id="progress-container">
+            <div class="progress-hearts">
+                <span class="heart" data-stage="1">🤍</span>
+                <span class="heart" data-stage="2">🤍</span>
+                <span class="heart" data-stage="3">🤍</span>
+                <span class="heart" data-stage="4">🤍</span>
+            </div>
+            <p class="progress-text" id="progress-text">Tap awan untuk menyiram~ 🌧️</p>
+        </div>
+
+        <div class="garden">
+            <div class="flower-wrapper" id="flower-wrapper">
+                <!-- Bloom -->
+                <div class="flower-bloom" id="flower-bloom">
+                    <div class="petal-layer outer">
+                        <div class="petal p1"></div>
+                        <div class="petal p2"></div>
+                        <div class="petal p3"></div>
+                        <div class="petal p4"></div>
+                        <div class="petal p5"></div>
+                    </div>
+                    <div class="petal-layer inner">
+                        <div class="petal p6"></div>
+                        <div class="petal p7"></div>
+                        <div class="petal p8"></div>
+                    </div>
+                    <div class="flower-center"></div>
+                </div>
+                <!-- Bud -->
+                <div class="flower-bud" id="flower-bud">
+                    <div class="bud-petal bp1"></div>
+                    <div class="bud-petal bp2"></div>
+                    <div class="bud-petal bp3"></div>
+                </div>
+                <!-- Leaves -->
+                <div class="leaf leaf-left" id="leaf-left">
+                    <div class="leaf-shape"></div>
+                    <div class="leaf-vein"></div>
+                </div>
+                <div class="leaf leaf-right" id="leaf-right">
+                    <div class="leaf-shape"></div>
+                    <div class="leaf-vein"></div>
+                </div>
+                <!-- Stem -->
+                <div class="stem" id="stem"></div>
+                <!-- Sprout -->
+                <div class="sprout" id="sprout">
+                    <div class="sprout-leaf sprout-left"></div>
+                    <div class="sprout-leaf sprout-right"></div>
+                </div>
+            </div>
+            <!-- Pot -->
+            <div class="pot-container">
+                <div class="pot-rim"></div>
+                <div class="pot-body">
+                    <div class="pot-stripe"></div>
+                </div>
+                <div class="soil">
+                    <div class="soil-texture"></div>
+                </div>
+            </div>
+            <div class="ground">
+                <div class="grass g1">🌱</div>
+                <div class="grass g2">🌿</div>
+                <div class="grass g3">🌱</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SCENE 3: TRANSITION + FIREWORKS ============ -->
+    <div id="scene-transition" class="scene">
+        <canvas id="fireworks-canvas"></canvas>
+        <div class="flying-petals" id="flying-petals"></div>
+        <div class="confetti-container" id="confetti-container"></div>
+        <div class="transition-content" id="transition-content">
+            <div class="transition-sparkle">✨</div>
+            <h1 class="birthday-title" id="birthday-title">
+                <span class="title-line" id="title-line-1">Selamat Ulang Tahun</span>
+                <span class="title-age" id="title-age">ke-20!</span>
+            </h1>
+            <p class="birthday-name" id="birthday-name">✨ Aisyah ✨</p>
+            <p class="birthday-date" id="birthday-date">26 Juli 2006 — 26 Juli 2026</p>
+            <button class="continue-btn" id="continue-btn">
+                <span>Buka Pesanmu</span>
+                <span class="btn-envelope">💌</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ SCENE 4: MESSAGE ============ -->
+    <div id="scene-message" class="scene">
+        <div class="message-petals" id="message-petals"></div>
+        <div class="message-scroll" id="message-scroll">
+
+            <!-- Header -->
+            <div class="msg-header reveal-item">
+                <div class="header-decoration">
+                    <span>🌸</span><span>🌺</span><span>🌸</span>
+                </div>
+                <h1 class="msg-name">Aisyah</h1>
+                <div class="age-badge">
+                    <span class="age-number">20</span>
+                    <span class="age-label">tahun</span>
+                </div>
+                <p class="msg-date-range">26 Juli 2006 → 26 Juli 2026</p>
+            </div>
+
+            <!-- Timeline -->
+            <div class="section reveal-item">
+                <h2 class="section-title">
+                    <span class="title-icon">💫</span>
+                    Perjalanan Kita
+                </h2>
+                <div class="timeline">
+                    <div class="timeline-line"></div>
+                    <div class="timeline-item reveal-item" data-delay="200">
+                        <div class="timeline-dot">
+                            <div class="dot-inner"></div>
+                        </div>
+                        <div class="timeline-card">
+                            <span class="timeline-date">Juli 2025</span>
+                            <p class="timeline-title">Awal kita kenal 💫</p>
+                            <p class="timeline-desc">Siapa sangka kenal nya di map gunung roblox, wkwkwk 😹</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-item" data-delay="400">
+                        <div class="timeline-dot">
+                            <div class="dot-inner"></div>
+                        </div>
+                        <div class="timeline-card">
+                            <span class="timeline-date">2025 — 2026</span>
+                            <p class="timeline-title">Setahun penuh cerita 📖</p>
+                            <p class="timeline-desc">Penuh tawa, cerita seru, dan momen-momen yang nggak terlupakan</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item reveal-item" data-delay="600">
+                        <div class="timeline-dot">
+                            <div class="dot-inner"></div>
+                        </div>
+                        <div class="timeline-card">
+                            <span class="timeline-date">26 Juli 2026</span>
+                            <p class="timeline-title">Hari spesialmu! 🎉</p>
+                            <p class="timeline-desc">Dan di hari yang spesial ini, aku mau bilang sesuatu...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Card -->
+            <div class="section reveal-item">
+                <div class="message-card">
+                    <div class="card-corner top-left">🌸</div>
+                    <div class="card-corner top-right">🌺</div>
+                    <h2 class="card-title">Untukmu, Aisyah 💕</h2>
+                    <div class="card-body">
+                        <p>Hai Aisyah! 🌸</p>
+                        <p><strong>Selamat ulang tahun yang ke-20!</strong> 🎉</p>
+                        <p>Nggak kerasa ya, udah resmi masuk usia 20-an nih~ Welcome to the new chapter of your life!
+                        </p>
+                        <p>Walaupun kita baru kenal setahun sejak Juli 2025, tapi rasanya udah kayak kenal lama banget.
+                            Makasih udah jadi bagian dari cerita yang seru dan penuh warna ya.</p>
+                        <p>Di usia yang baru ini, semoga semua yang kamu impikan bisa tercapai satu per satu. Semoga
+                            selalu sehat, selalu bahagia, dan selalu dikelilingi orang-orang yang sayang sama kamu.</p>
+                        <p>Tetap jadi Aisyah yang apa adanya, yang selalu bikin suasana jadi lebih hidup dan berwarna~
+                            💕</p><br>
+                    </div>
+                    <div class="card-corner bottom-left">🌷</div>
+                    <div class="card-corner bottom-right">🌸</div>
+                </div>
+            </div>
+
+
+            <!-- Closing -->
+            <div class="closing-section reveal-item">
+                <div class="closing-flowers">
+                    <span>🌸</span><span>🌹</span><span>🌺</span><span>🌷</span><span>🌸</span>
+                </div>
+                <h2 class="closing-title">Happy Birthday</h2>
+                <h1 class="closing-name">Aisyah Mutmainah! </h1>
+                <div class="closing-cake">🎂🎂🎂🎂</div>
+                <p class="closing-wish">Semoga panjang umur, sehat selalu, dan semua doa-doa baikmu dikabulkan ya~</p>
+                <p class="closing-amin">Aamiin 🤲✨</p>
+                <div class="closing-divider">— ♡ —</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
