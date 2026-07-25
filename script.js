@@ -39,10 +39,12 @@ let animFrameId = null;
 // INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    initBgm();
     initScene1_Opening();
     initScene2_Flower();
     initScene3_Transition();
     initScene4_Message();
+    initGallerySystem();
 });
 
 // ==========================================
@@ -84,6 +86,7 @@ function initScene1_Opening() {
 
     const btn = document.getElementById('start-btn');
     btn.addEventListener('click', () => {
+        playButtonClickSFX();
         btn.style.transform = 'scale(0.9)';
         setTimeout(() => showScene('flower'), 200);
     });
@@ -188,6 +191,9 @@ function onCloudTap() {
 
     flowerProgress = Math.min(flowerProgress + TAP_INCREMENT, MAX_PROGRESS);
 
+    // Play watering sound effect
+    playWateringSFX();
+
     // Animate cloud
     bounceCloud();
 
@@ -282,6 +288,7 @@ function initScene3_Transition() {
     fireworksCtx = fireworksCanvas.getContext('2d');
 
     document.getElementById('continue-btn').addEventListener('click', () => {
+        playButtonClickSFX();
         stopFireworks();
         showScene('message');
     });
@@ -406,6 +413,7 @@ function launchFirework() {
 
     // Launch 1-2 rockets at a time
     const count = 1 + Math.floor(Math.random() * 2);
+    if (count > 0) playFireworkLaunchSFX();
     for (let i = 0; i < count; i++) {
         rockets.push({
             x: w * 0.15 + Math.random() * w * 0.7,
@@ -422,6 +430,7 @@ function launchFirework() {
 }
 
 function explodeFirework(x, y, color) {
+    playFireworkExplosionSFX();
     const count = 50 + Math.floor(Math.random() * 40);
     const type = Math.random(); // for different explosion patterns
 
@@ -551,49 +560,49 @@ function animateFireworks() {
 // SCENE 4: MESSAGE
 // ==========================================
 function initScene4_Message() {
-    // Intersection Observer for scroll reveal
+    const scrollContainer = document.getElementById('message-scroll');
     const observer = new IntersectionObserver(
         (entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    const delay = parseInt(entry.target.dataset.delay || '0');
-                    setTimeout(() => {
-                        entry.target.classList.add('revealed');
-                    }, delay);
-                    // Don't unobserve — allow re-reveal if scrolled back
+                    entry.target.classList.add('revealed');
                 }
             });
         },
         {
-            threshold: 0.15,
-            root: null,
+            threshold: 0.1,
+            root: scrollContainer,
         }
     );
 
-    document.querySelectorAll('.reveal-item').forEach((el) => {
+    document.querySelectorAll('#scene-message .reveal-item').forEach((el) => {
         observer.observe(el);
     });
 }
 
 function onMessageActive() {
+    // Start background music automatically right after fireworks scene!
+    if (!isBgmPlaying) {
+        playBGM();
+    }
+
     // Create background petals
     createSakuraPetals('message-petals', 12);
 
-    // Scroll to top
+    // Reset scroll position to top instantly
     const scroll = document.getElementById('message-scroll');
     if (scroll) scroll.scrollTop = 0;
 
-    // Re-trigger reveals (in case observer already saw them while hidden)
-    setTimeout(() => {
-        document.querySelectorAll('#scene-message .reveal-item').forEach((el) => {
-            el.classList.remove('revealed');
-        });
-        // Let intersection observer re-detect them
-        const scroll = document.getElementById('scene-message');
-        if (scroll) {
-            scroll.scrollTop = 0;
-        }
-    }, 100);
+    // Clear all revealed states
+    const items = Array.from(document.querySelectorAll('#scene-message .reveal-item'));
+    items.forEach((el) => el.classList.remove('revealed'));
+
+    // Trigger smooth, staggered top-to-bottom reveal sequence
+    items.forEach((el, index) => {
+        setTimeout(() => {
+            el.classList.add('revealed');
+        }, 100 + index * 150);
+    });
 }
 
 // ==========================================
@@ -618,3 +627,463 @@ document.addEventListener('touchmove', (e) => {
 document.addEventListener('dblclick', (e) => {
     e.preventDefault();
 }, { passive: false });
+
+// ==========================================
+// BACKGROUND MUSIC (BGM) SYSTEM
+// ==========================================
+let isBgmPlaying = false;
+let audioCtx = null;
+let bgmTimer = null;
+let synthGain = null;
+let hasUserInteracted = false;
+
+function initBgm() {
+    const toggleBtn = document.getElementById('music-toggle');
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hasUserInteracted = true;
+            if (isBgmPlaying) {
+                pauseBGM();
+            } else {
+                playBGM();
+            }
+        });
+    }
+
+    // Unlock AudioContext on first user interaction so sound effects work smoothly
+    const unlockAudioOnInteraction = () => {
+        getAudioContext();
+        document.removeEventListener('click', unlockAudioOnInteraction);
+        document.removeEventListener('touchstart', unlockAudioOnInteraction);
+    };
+
+    document.addEventListener('click', unlockAudioOnInteraction, { once: true });
+    document.addEventListener('touchstart', unlockAudioOnInteraction, { once: true });
+}
+
+function playBGM() {
+    const bgmAudio = document.getElementById('bgm-audio');
+    const toggleBtn = document.getElementById('music-toggle');
+    const musicIcon = document.getElementById('music-icon');
+
+    isBgmPlaying = true;
+    if (toggleBtn) {
+        toggleBtn.classList.add('playing');
+        toggleBtn.classList.remove('muted');
+        toggleBtn.setAttribute('title', 'Matikan Musik');
+    }
+    if (musicIcon) musicIcon.textContent = '🎵';
+
+    // Try HTML5 Audio element first
+    if (bgmAudio) {
+        bgmAudio.volume = 0.45;
+        const promise = bgmAudio.play();
+        if (promise !== undefined) {
+            promise.then(() => {
+                // HTML5 Audio playing cleanly
+            }).catch(() => {
+                // Fallback to Web Audio Synth if blocked or failed to load
+                startSynthBGM();
+            });
+        } else {
+            startSynthBGM();
+        }
+    } else {
+        startSynthBGM();
+    }
+}
+
+function pauseBGM() {
+    const bgmAudio = document.getElementById('bgm-audio');
+    const toggleBtn = document.getElementById('music-toggle');
+    const musicIcon = document.getElementById('music-icon');
+
+    isBgmPlaying = false;
+    if (toggleBtn) {
+        toggleBtn.classList.remove('playing');
+        toggleBtn.classList.add('muted');
+        toggleBtn.setAttribute('title', 'Putar Musik');
+    }
+    if (musicIcon) musicIcon.textContent = '🔇';
+
+    if (bgmAudio) {
+        bgmAudio.pause();
+    }
+    stopSynthBGM();
+}
+
+// Procedural Web Audio Music Box / Chime Synthesizer Fallback
+function startSynthBGM() {
+    if (bgmTimer) return;
+    try {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        synthGain = audioCtx.createGain();
+        synthGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        synthGain.connect(audioCtx.destination);
+
+        // Warm kalimba / music box birthday tune notes (Frequency in Hz, Duration in sec)
+        const notes = [
+            { f: 392.00, d: 0.35 }, { f: 392.00, d: 0.35 }, { f: 440.00, d: 0.7 }, { f: 392.00, d: 0.7 }, { f: 523.25, d: 0.7 }, { f: 493.88, d: 1.1 },
+            { f: 392.00, d: 0.35 }, { f: 392.00, d: 0.35 }, { f: 440.00, d: 0.7 }, { f: 392.00, d: 0.7 }, { f: 587.33, d: 0.7 }, { f: 523.25, d: 1.1 },
+            { f: 392.00, d: 0.35 }, { f: 392.00, d: 0.35 }, { f: 783.99, d: 0.7 }, { f: 659.25, d: 0.7 }, { f: 523.25, d: 0.7 }, { f: 493.88, d: 0.7 }, { f: 440.00, d: 0.9 },
+            { f: 698.46, d: 0.35 }, { f: 698.46, d: 0.35 }, { f: 659.25, d: 0.7 }, { f: 523.25, d: 0.7 }, { f: 587.33, d: 0.7 }, { f: 523.25, d: 1.4 },
+        ];
+
+        let noteIdx = 0;
+        const playNextNote = () => {
+            if (!isBgmPlaying) return;
+            const n = notes[noteIdx];
+            playSynthChime(n.f, n.d);
+            noteIdx = (noteIdx + 1) % notes.length;
+            const nextDelay = (n.d + 0.12) * 1000;
+            bgmTimer = setTimeout(playNextNote, nextDelay);
+        };
+
+        playNextNote();
+    } catch (e) {
+        console.log('Web Audio Synth notice:', e);
+    }
+}
+
+function playSynthChime(freq, duration) {
+    if (!audioCtx || !synthGain) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+
+        // Sine wave for clean bell/kalimba warmth
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        const now = audioCtx.currentTime;
+        noteGain.gain.setValueAtTime(0.001, now);
+        noteGain.gain.exponentialRampToValueAtTime(0.18, now + 0.04);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+        osc.connect(noteGain);
+        noteGain.connect(synthGain);
+
+        osc.start(now);
+        osc.stop(now + duration + 0.1);
+    } catch (e) {}
+}
+
+function stopSynthBGM() {
+    if (bgmTimer) {
+        clearTimeout(bgmTimer);
+        bgmTimer = null;
+    }
+}
+
+// ==========================================
+// SOUND EFFECTS (SFX) GENERATORS
+// ==========================================
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// 1. Water droplets & splash sound effect when watering cloud
+function playWateringSFX() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(650, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.1);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.11);
+
+        // Secondary chime accent
+        setTimeout(() => {
+            try {
+                const ctx2 = getAudioContext();
+                const now2 = ctx2.currentTime;
+                const osc2 = ctx2.createOscillator();
+                const gain2 = ctx2.createGain();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(1046.5, now2); // C6
+                gain2.gain.setValueAtTime(0.08, now2);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now2 + 0.12);
+                osc2.connect(gain2);
+                gain2.connect(ctx2.destination);
+                osc2.start(now2);
+                osc2.stop(now2 + 0.13);
+            } catch (e) {}
+        }, 50);
+    } catch (e) {}
+}
+
+// 2. Firework launch whistle SFX
+function playFireworkLaunchSFX() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(750 + Math.random() * 250, now + 0.28);
+
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.linearRampToValueAtTime(0.1, now + 0.18);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.31);
+    } catch (e) {}
+}
+
+// 3. Firework explosion boom & crackle SFX
+function playFireworkExplosionSFX() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        // Boom low pitch
+        const boomOsc = ctx.createOscillator();
+        const boomGain = ctx.createGain();
+
+        boomOsc.type = 'triangle';
+        boomOsc.frequency.setValueAtTime(130 + Math.random() * 30, now);
+        boomOsc.frequency.exponentialRampToValueAtTime(35, now + 0.3);
+
+        boomGain.gain.setValueAtTime(0.3, now);
+        boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+
+        boomOsc.connect(boomGain);
+        boomGain.connect(ctx.destination);
+
+        boomOsc.start(now);
+        boomOsc.stop(now + 0.35);
+
+        // Crackle noise burst
+        const bufferSize = Math.floor(ctx.sampleRate * 0.2);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1400, now);
+        filter.Q.setValueAtTime(1.2, now);
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.2, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+
+        noise.start(now);
+    } catch (e) {}
+}
+
+// 4. Button click chime SFX
+function playButtonClickSFX() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08);
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.19);
+    } catch (e) {}
+}
+
+// ==========================================
+// GALLERY & CAROUSEL SYSTEM
+// ==========================================
+const TOTAL_ROBLOX_PHOTOS = 28;
+let currentPhotoIndex = 1;
+
+function initGallerySystem() {
+    buildCarouselTrack();
+
+    // Button to scroll directly to gallery section
+    const openBtn = document.getElementById('open-gallery-btn');
+    if (openBtn) {
+        openBtn.addEventListener('click', () => {
+            playButtonClickSFX();
+            const gallerySection = document.getElementById('gallery-section');
+            if (gallerySection) {
+                gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    // Carousel track manual navigation buttons
+    const prevBtn = document.getElementById('carousel-prev-btn');
+    const nextBtn = document.getElementById('carousel-next-btn');
+    const trackWrapper = document.getElementById('carousel-track-wrapper');
+
+    if (prevBtn && trackWrapper) {
+        prevBtn.addEventListener('click', () => {
+            playButtonClickSFX();
+            trackWrapper.scrollBy({ left: -260, behavior: 'smooth' });
+        });
+    }
+
+    if (nextBtn && trackWrapper) {
+        nextBtn.addEventListener('click', () => {
+            playButtonClickSFX();
+            trackWrapper.scrollBy({ left: 260, behavior: 'smooth' });
+        });
+    }
+
+    // Lightbox modal controls
+    const closeBtn = document.getElementById('modal-close-btn');
+    const overlay = document.getElementById('modal-overlay');
+    const modalPrev = document.getElementById('modal-prev-btn');
+    const modalNext = document.getElementById('modal-next-btn');
+
+    if (closeBtn) closeBtn.addEventListener('click', closePhotoModal);
+    if (overlay) overlay.addEventListener('click', closePhotoModal);
+
+    if (modalPrev) {
+        modalPrev.addEventListener('click', () => {
+            playButtonClickSFX();
+            navigateModal(-1);
+        });
+    }
+    if (modalNext) {
+        modalNext.addEventListener('click', () => {
+            playButtonClickSFX();
+            navigateModal(1);
+        });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        const modal = document.getElementById('photo-modal');
+        if (modal && modal.classList.contains('active')) {
+            if (e.key === 'Escape') closePhotoModal();
+            if (e.key === 'ArrowLeft') navigateModal(-1);
+            if (e.key === 'ArrowRight') navigateModal(1);
+        }
+    });
+}
+
+function buildCarouselTrack() {
+    const track = document.getElementById('carousel-track');
+    if (!track) return;
+
+    track.innerHTML = '';
+
+    // Create set of 28 polaroid photo items
+    const createItems = () => {
+        for (let i = 1; i <= TOTAL_ROBLOX_PHOTOS; i++) {
+            const item = document.createElement('div');
+            item.className = 'polaroid-item';
+            item.setAttribute('data-index', i);
+
+            item.innerHTML = `
+                <div class="polaroid-tape"></div>
+                <div class="polaroid-img-wrapper">
+                    <img src="asset/roblox${i}.png" alt="Roblox ${i}" loading="lazy">
+                </div>
+            `;
+
+            item.addEventListener('click', () => {
+                playButtonClickSFX();
+                openPhotoModal(i);
+            });
+
+            track.appendChild(item);
+        }
+    };
+
+    // Append twice for seamless 100% infinite marquee loop
+    createItems();
+    createItems();
+}
+
+function openPhotoModal(index) {
+    currentPhotoIndex = index;
+    updateModalContent();
+
+    const modal = document.getElementById('photo-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closePhotoModal() {
+    playButtonClickSFX();
+    const modal = document.getElementById('photo-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function navigateModal(direction) {
+    currentPhotoIndex += direction;
+    if (currentPhotoIndex < 1) currentPhotoIndex = TOTAL_ROBLOX_PHOTOS;
+    if (currentPhotoIndex > TOTAL_ROBLOX_PHOTOS) currentPhotoIndex = 1;
+    updateModalContent();
+}
+
+function updateModalContent() {
+    const modalImg = document.getElementById('modal-img');
+    const modalCaption = document.getElementById('modal-caption');
+    const modalCounter = document.getElementById('modal-counter');
+
+    if (modalImg) {
+        modalImg.src = `asset/roblox${currentPhotoIndex}.png`;
+        modalImg.alt = `Roblox Kenangan #${currentPhotoIndex}`;
+    }
+    if (modalCaption) {
+        modalCaption.textContent = `Roblox Kenangan #${currentPhotoIndex} 🌸`;
+    }
+    if (modalCounter) {
+        modalCounter.textContent = `${currentPhotoIndex} / ${TOTAL_ROBLOX_PHOTOS}`;
+    }
+}
+
